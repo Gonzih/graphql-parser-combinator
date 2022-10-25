@@ -23,6 +23,8 @@ case class TYPE(str: String, nonull: Boolean) extends GQLType
 case class ARRAY(t: TYPE, nonull: Boolean) extends GQLType
 case class FIELD_DEF(str: String, t: GQLType) extends GQLToken
 
+case class INTERFACE(str: String, fields: List[FIELD_DEF]) extends GQLType
+
 trait SimpleParser extends RegexParsers:
   def identifier: Parser[IDENTIFIER] =
     """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { IDENTIFIER(_) }
@@ -51,6 +53,12 @@ trait SimpleParser extends RegexParsers:
 
   def fielddef: Parser[FIELD_DEF] =
     identifier ~ colon ~ array_or_type ^^ { case id ~ _ ~ t => FIELD_DEF(id.str, t) }
+
+  def iface: Parser[INTERFACE] =
+    """interface""" ~ identifier ~ openbrace ~ rep1(fielddef) ~ closebrace ^^
+      { case _ ~ id ~ _ ~ fields ~ _  => INTERFACE(id.str, fields)}
+
+
 end SimpleParser
 
 // object SimpleParser extends SimpleParser:

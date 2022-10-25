@@ -99,13 +99,7 @@ class MySuite extends munit.FunSuite with SimpleParser {
   test("Parse simple field definition") {
     parse(fielddef, "hero: Character") match
       case Success(matched, _) =>
-        assertEquals(matched.str, "hero")
-        matched.t match
-          case TYPE(str, nonull) =>
-            assertEquals(str, "Character")
-            assertEquals(nonull, false)
-          case ARRAY(t, nonull) =>
-            fail("Should not be an arary here")
+        assertEquals(matched, FIELD_DEF("hero", TYPE("Character", false)))
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -114,12 +108,7 @@ class MySuite extends munit.FunSuite with SimpleParser {
     parse(fielddef, "hero: Character!") match
       case Success(matched, _) =>
         assertEquals(matched.str, "hero")
-        matched.t match
-          case TYPE(str, nonull) =>
-            assertEquals(str, "Character")
-            assertEquals(nonull, true)
-          case ARRAY(t, nonull) =>
-            fail("Should not be an arary here")
+        assertEquals(matched, FIELD_DEF("hero", TYPE("Character", true)))
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -127,14 +116,10 @@ class MySuite extends munit.FunSuite with SimpleParser {
   test("Parse simple array field definition") {
     parse(fielddef, "hero: [Character]!") match
       case Success(matched, _) =>
-        assertEquals(matched.str, "hero")
-        matched.t match
-          case TYPE(str, nonull) =>
-            fail("Should not be an arary here")
-          case ARRAY(t, nonull) =>
-            assertEquals(t.str, "Character")
-            assertEquals(t.nonull, false)
-            assertEquals(nonull, true)
+        assertEquals(
+          matched,
+          FIELD_DEF("hero", ARRAY(TYPE("Character", false), true))
+        )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -142,14 +127,36 @@ class MySuite extends munit.FunSuite with SimpleParser {
   test("Parse simple non null array field definition") {
     parse(fielddef, "hero: [Character!]!") match
       case Success(matched, _) =>
-        assertEquals(matched.str, "hero")
-        matched.t match
-          case TYPE(str, nonull) =>
-            fail("Should not be an arary here")
-          case ARRAY(t, nonull) =>
-            assertEquals(t.str, "Character")
-            assertEquals(t.nonull, true)
-            assertEquals(nonull, true)
+        assertEquals(
+          matched,
+          FIELD_DEF("hero", ARRAY(TYPE("Character", true), true))
+        )
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
+
+  test("Parse interface definition") {
+    val ifaceSchema =
+      """
+          |    interface Character {
+          |        id: ID!
+          |        name: String!
+          |        friends: [Character]
+          |        appearsIn: [Episode]!
+          |    }
+        """.stripMargin
+    parse(iface, ifaceSchema) match
+      case Success(matched, _) =>
+        assertEquals(matched.str, "Character")
+        assertEquals(
+          matched.fields,
+          List(
+            FIELD_DEF("id", TYPE("ID", true)),
+            FIELD_DEF("name", TYPE("String", true)),
+            FIELD_DEF("friends", ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF("appearsIn", ARRAY(TYPE("Episode", false), true))
+          )
+        )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
