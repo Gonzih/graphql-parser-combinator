@@ -8,18 +8,20 @@ case class WordFreq(word: String, count: Int):
 end WordFreq
 
 sealed trait GQLToken
+sealed trait GQLType extends GQLToken
 
 case class IDENTIFIER(str: String) extends GQLToken
 case class NON_NULL(str: String) extends GQLToken
 case class COLON(str: String) extends GQLToken
-case class TYPE(str: String, nonull: Boolean) extends GQLToken
+
 case class OPEN_BRACKET(str: String) extends GQLToken
 case class CLOSE_BRACKET(str: String) extends GQLToken
 case class OPEN_BRACE(str: String) extends GQLToken
 case class CLOSE_BRACE(str: String) extends GQLToken
-case class ARRAY(t: TYPE, nonull: Boolean) extends GQLToken
-type ARRAY_OR_TYPE = ARRAY | TYPE
-case class FIELD_DEF(str: String, t: ARRAY_OR_TYPE) extends GQLToken
+
+case class TYPE(str: String, nonull: Boolean) extends GQLType
+case class ARRAY(t: TYPE, nonull: Boolean) extends GQLType
+case class FIELD_DEF(str: String, t: GQLType) extends GQLToken
 
 trait SimpleParser extends RegexParsers:
   def identifier: Parser[IDENTIFIER] =
@@ -44,7 +46,7 @@ trait SimpleParser extends RegexParsers:
   def array: Parser[ARRAY] =
     openbracket ~ typeany ~ closebracket ~ opt(nonnull) ^^ { case _ ~ t ~ _ ~ nn => ARRAY(t, nn.isDefined) }
 
-  def array_or_type: Parser[ARRAY_OR_TYPE] =
+  def array_or_type: Parser[GQLType] =
     array | typeany ^^ { case t => t }
 
   def fielddef: Parser[FIELD_DEF] =
