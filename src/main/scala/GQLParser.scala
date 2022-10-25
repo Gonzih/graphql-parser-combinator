@@ -27,12 +27,14 @@ case class ARG_DEF(str: String, t: GQLType) extends GQLToken
 case class FIELD_DEF(str: String, args: List[ARG_DEF], t: GQLType)
     extends GQLToken
 
-case class INTERFACE(str: String, fields: List[FIELD_DEF]) extends GQLType
+case class INTERFACE_DEF(str: String, fields: List[FIELD_DEF]) extends GQLType
 case class TYPE_DEF(
     str: String,
     iface: Option[String],
     fields: List[FIELD_DEF]
 ) extends GQLType
+case class ENUM_DEF(str: String, fields: List[String]) extends GQLType
+case class SCHEMA_DEF(fields: List[FIELD_DEF]) extends GQLType
 
 trait SimpleParser extends RegexParsers:
   def identifier: Parser[IDENTIFIER] =
@@ -84,9 +86,9 @@ trait SimpleParser extends RegexParsers:
       FIELD_DEF(id.str, args.toList.flatten, t)
     }
 
-  def iface: Parser[INTERFACE] =
+  def iface: Parser[INTERFACE_DEF] =
     """interface""" ~ identifier ~ openbrace ~ rep1(fielddef) ~ closebrace ^^ {
-      case _ ~ id ~ _ ~ fields ~ _ => INTERFACE(id.str, fields)
+      case _ ~ id ~ _ ~ fields ~ _ => INTERFACE_DEF(id.str, fields)
     }
 
   def typedef: Parser[TYPE_DEF] =
@@ -96,6 +98,16 @@ trait SimpleParser extends RegexParsers:
       case _ ~ id ~ Some(_ ~ iface) ~ _ ~ fields ~ _ =>
         TYPE_DEF(id.str, Some(iface.str), fields)
       case _ ~ id ~ None ~ _ ~ fields ~ _ => TYPE_DEF(id.str, None, fields)
+    }
+
+  def enumdef: Parser[ENUM_DEF] =
+    """enum""" ~ identifier ~ openbrace ~ rep1(identifier) ~ closebrace ^^ {
+      case _ ~ id ~ _ ~ fields ~ _ => ENUM_DEF(id.str, fields.map(_.str))
+    }
+
+  def schemadef: Parser[SCHEMA_DEF] =
+    """schema""" ~ openbrace ~ rep1(fielddef) ~ closebrace ^^ {
+      case _ ~ _ ~ fields ~ _ => SCHEMA_DEF(fields)
     }
 
 end SimpleParser

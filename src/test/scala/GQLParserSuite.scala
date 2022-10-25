@@ -218,4 +218,47 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
+
+  test("Parse enum definition") {
+    val typedefSchema =
+      """
+      |    enum Episode {
+      |        NEWHOPE
+      |        EMPIRE
+      |        JEDI
+      |    }
+        """.stripMargin
+    parse(enumdef, typedefSchema) match
+      case Success(matched, _) =>
+        assertEquals(matched.str, "Episode")
+        assertEquals(
+          matched.fields,
+          List(
+            "NEWHOPE",
+            "EMPIRE",
+            "JEDI"
+          )
+        )
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
+
+  test("Parse schema definition") {
+    val typedefSchema =
+      """
+      |    schema {
+      |        query: QueryType
+      |    }
+        """.stripMargin
+    parse(schemadef, typedefSchema) match
+      case Success(matched, _) =>
+        assertEquals(
+          matched.fields,
+          List(
+            FIELD_DEF("query", List(), TYPE("QueryType", false)),
+          )
+        )
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
 }
