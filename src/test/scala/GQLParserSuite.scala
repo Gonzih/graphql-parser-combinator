@@ -1,4 +1,4 @@
-package com.example
+package com.example.gqlparser
 
 val starWarsSchema =
   """
@@ -45,7 +45,7 @@ val starWarsSchema =
       |    }
     """.stripMargin
 
-class MySuite extends munit.FunSuite with SimpleParser {
+class GQLParserSuite extends munit.FunSuite with SimpleParser {
   test("Parse !") {
     parse(nonnull, "!") match
       case Success(matched, _) =>
@@ -155,6 +155,35 @@ class MySuite extends munit.FunSuite with SimpleParser {
             FIELD_DEF("name", TYPE("String", true)),
             FIELD_DEF("friends", ARRAY(TYPE("Character", false), false)),
             FIELD_DEF("appearsIn", ARRAY(TYPE("Episode", false), true))
+          )
+        )
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
+
+  test("Parse type definition") {
+    val typedefSchema =
+      """
+          |    type Human implements Character {
+          |        id: ID!
+          |        name: String!
+          |        friends: [Character]
+          |        appearsIn: [Episode]!
+          |        homePlanet: String
+          |    }
+        """.stripMargin
+    parse(typedef, typedefSchema) match
+      case Success(matched, _) =>
+        assertEquals(matched.str, "Human")
+        assertEquals(matched.iface, Some("Character"))
+        assertEquals(
+          matched.fields,
+          List(
+            FIELD_DEF("id", TYPE("ID", true)),
+            FIELD_DEF("name", TYPE("String", true)),
+            FIELD_DEF("friends", ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF("appearsIn", ARRAY(TYPE("Episode", false), true)),
+            FIELD_DEF("homePlanet", TYPE("String", false)),
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)

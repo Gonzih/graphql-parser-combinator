@@ -1,10 +1,10 @@
-package com.example
+package com.example.gqlparser
 
 import scala.util.parsing.combinator._
 
 case class WordFreq(word: String, count: Int):
   override def toString = "Word <" + word + "> " +
-                          "occurs with frequency " + count
+    "occurs with frequency " + count
 end WordFreq
 
 sealed trait GQLToken
@@ -24,6 +24,11 @@ case class ARRAY(t: TYPE, nonull: Boolean) extends GQLType
 case class FIELD_DEF(str: String, t: GQLType) extends GQLToken
 
 case class INTERFACE(str: String, fields: List[FIELD_DEF]) extends GQLType
+case class TYPE_DEF(
+    str: String,
+    iface: Option[String],
+    fields: List[FIELD_DEF]
+) extends GQLType
 
 trait SimpleParser extends RegexParsers:
   def identifier: Parser[IDENTIFIER] =
@@ -46,22 +51,35 @@ trait SimpleParser extends RegexParsers:
     """\}""".r ^^ { CLOSE_BRACE(_) }
 
   def array: Parser[ARRAY] =
-    openbracket ~ typeany ~ closebracket ~ opt(nonnull) ^^ { case _ ~ t ~ _ ~ nn => ARRAY(t, nn.isDefined) }
+    openbracket ~ typeany ~ closebracket ~ opt(nonnull) ^^ {
+      case _ ~ t ~ _ ~ nn => ARRAY(t, nn.isDefined)
+    }
 
   def array_or_type: Parser[GQLType] =
     array | typeany ^^ { case t => t }
 
   def fielddef: Parser[FIELD_DEF] =
-    identifier ~ colon ~ array_or_type ^^ { case id ~ _ ~ t => FIELD_DEF(id.str, t) }
+    identifier ~ colon ~ array_or_type ^^ { case id ~ _ ~ t =>
+      FIELD_DEF(id.str, t)
+    }
 
   def iface: Parser[INTERFACE] =
-    """interface""" ~ identifier ~ openbrace ~ rep1(fielddef) ~ closebrace ^^
-      { case _ ~ id ~ _ ~ fields ~ _  => INTERFACE(id.str, fields)}
+    """interface""" ~ identifier ~ openbrace ~ rep1(fielddef) ~ closebrace ^^ {
+      case _ ~ id ~ _ ~ fields ~ _ => INTERFACE(id.str, fields)
+    }
 
+  def typedef: Parser[TYPE_DEF] =
+    """type""" ~ identifier ~ opt(
+      """implements""" ~ identifier
+    ) ~ openbrace ~ rep1(fielddef) ~ closebrace ^^ {
+      case _ ~ id ~ Some(_ ~ iface) ~ _ ~ fields ~ _ =>
+        TYPE_DEF(id.str, Some(iface.str), fields)
+      case _ ~ id ~ None ~ _ ~ fields ~ _ => TYPE_DEF(id.str, None, fields)
+    }
 
 end SimpleParser
 
 // object SimpleParser extends SimpleParser:
-  // def run(input: String): ParseResult[GQLToken] =
-    // parse(freq, input)
+// def run(input: String): ParseResult[GQLToken] =
+// parse(freq, input)
 // end SimpleParser
