@@ -99,7 +99,7 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
   test("Parse simple field definition") {
     parse(fielddef, "hero: Character") match
       case Success(matched, _) =>
-        assertEquals(matched, FIELD_DEF("hero", TYPE("Character", false)))
+        assertEquals(matched, FIELD_DEF("hero", List(), TYPE("Character", false)))
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -108,7 +108,7 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
     parse(fielddef, "hero: Character!") match
       case Success(matched, _) =>
         assertEquals(matched.str, "hero")
-        assertEquals(matched, FIELD_DEF("hero", TYPE("Character", true)))
+        assertEquals(matched, FIELD_DEF("hero", List(), TYPE("Character", true)))
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -118,7 +118,7 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
       case Success(matched, _) =>
         assertEquals(
           matched,
-          FIELD_DEF("hero", ARRAY(TYPE("Character", false), true))
+          FIELD_DEF("hero", List(), ARRAY(TYPE("Character", false), true))
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
@@ -129,7 +129,7 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
       case Success(matched, _) =>
         assertEquals(
           matched,
-          FIELD_DEF("hero", ARRAY(TYPE("Character", true), true))
+          FIELD_DEF("hero", List(), ARRAY(TYPE("Character", true), true))
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
@@ -151,10 +151,10 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
         assertEquals(
           matched.fields,
           List(
-            FIELD_DEF("id", TYPE("ID", true)),
-            FIELD_DEF("name", TYPE("String", true)),
-            FIELD_DEF("friends", ARRAY(TYPE("Character", false), false)),
-            FIELD_DEF("appearsIn", ARRAY(TYPE("Episode", false), true))
+            FIELD_DEF("id", List(), TYPE("ID", true)),
+            FIELD_DEF("name", List(), TYPE("String", true)),
+            FIELD_DEF("friends", List(), ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF("appearsIn", List(), ARRAY(TYPE("Episode", false), true))
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
@@ -179,11 +179,40 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
         assertEquals(
           matched.fields,
           List(
-            FIELD_DEF("id", TYPE("ID", true)),
-            FIELD_DEF("name", TYPE("String", true)),
-            FIELD_DEF("friends", ARRAY(TYPE("Character", false), false)),
-            FIELD_DEF("appearsIn", ARRAY(TYPE("Episode", false), true)),
-            FIELD_DEF("homePlanet", TYPE("String", false)),
+            FIELD_DEF("id", List(), TYPE("ID", true)),
+            FIELD_DEF("name", List(), TYPE("String", true)),
+            FIELD_DEF("friends", List(), ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF("appearsIn", List(), ARRAY(TYPE("Episode", false), true)),
+            FIELD_DEF("homePlanet", List(), TYPE("String", false)),
+          )
+        )
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
+
+  test("Parse query type definition") {
+    val typedefSchema =
+      """
+      |    type QueryType {
+      |        hero(episode: Episode): Character
+      |        human(id : String) : Human
+      |        droid(id: ID!): Droid
+      |        humans: [Human]
+      |        droids: [Droid]
+      |    }
+        """.stripMargin
+    parse(typedef, typedefSchema) match
+      case Success(matched, _) =>
+        assertEquals(matched.str, "QueryType")
+        assertEquals(matched.iface, None)
+        assertEquals(
+          matched.fields,
+          List(
+            FIELD_DEF("hero", List(ARG_DEF("episode", TYPE("Episode", false))), TYPE("Character", false)),
+            FIELD_DEF("human", List(ARG_DEF("id", TYPE("String", false))), TYPE("Human", false)),
+            FIELD_DEF("droid", List(ARG_DEF("id", TYPE("ID", true))), TYPE("Droid", false)),
+            FIELD_DEF("humans", List(), ARRAY(TYPE("Human", false), false)),
+            FIELD_DEF("droids", List(), ARRAY(TYPE("Droid", false), false)),
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
