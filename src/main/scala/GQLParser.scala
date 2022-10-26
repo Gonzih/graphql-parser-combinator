@@ -112,7 +112,7 @@ trait GQLSchemaParser extends RegexParsers:
     }
 
   def schema: Parser[List[GQLToken]] =
-    rep(schemadef | enumdef | typedef | iface ) ^^ {
+    rep(schemadef | enumdef | typedef | iface) ^^ {
       _.toList
     }
 
