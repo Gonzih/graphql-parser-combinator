@@ -9,9 +9,10 @@ end WordFreq
 
 sealed trait GQLToken
 sealed trait GQLType extends GQLToken
+sealed trait GQLArgItem extends GQLToken
 sealed trait GQLSchemaItem extends GQLToken
 
-case class IDENTIFIER(str: String) extends GQLToken
+case class IDENTIFIER(str: String) extends GQLArgItem
 case class NON_NULL(str: String) extends GQLToken
 case class COLON(str: String) extends GQLToken
 
@@ -118,15 +119,35 @@ trait GQLSchemaParser extends RegexParsers:
 
 end GQLSchemaParser
 
+case class QUERY_ARG(str: String, t: GQLArgItem) extends GQLToken
 case class QUERY_ITEM(
     str: String,
-    args: List[ARG_DEF],
+    args: List[QUERY_ARG],
     children: List[QUERY_ITEM]
 ) extends GQLToken
+case class STRING(str: String) extends GQLArgItem
+case class NUMBER(str: String) extends GQLArgItem
 
 trait GQLQueryParser extends GQLSchemaParser:
+  def string: Parser[STRING] =
+    """\"""".r ~ """[^"]*""".r ~ """\"""".r ^^ { case _ ~ s ~ _ => STRING(s) }
+
+  def number: Parser[NUMBER] =
+    """[1-9][.0-9]*""" ^^ { case s => NUMBER(s) }
+
+  def queryargv: Parser[GQLArgItem] =
+    identifier | string | number ^^ { case v => v }
+
+  def queryargs: Parser[List[QUERY_ARG]] =
+    openparen ~ repsep(
+      identifier ~ colon ~ queryargv,
+      ","
+    ) ~ closeparen ^^ { case _ ~ args ~ _ =>
+      args.map({ case id ~ _ ~ t => QUERY_ARG(id.str, t) })
+    }
+
   def queryitem: Parser[QUERY_ITEM] =
-    identifier ~ opt(argsdef) ~ opt(
+    identifier ~ opt(queryargs) ~ opt(
       openbrace ~ rep(queryitem) ~ closebrace
     ) ^^ {
       case id ~ args ~ Some(_ ~ children ~ _) =>

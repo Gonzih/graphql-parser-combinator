@@ -376,7 +376,7 @@ class GQLQuerySuite extends SuiteHelper with GQLQueryParser {
         assertEquals(
           matched.head.args,
           List(
-            ARG_DEF("id", TYPE("1000", false))
+            QUERY_ARG("id", STRING("1000"))
           )
         )
         assertEquals(matched.head.children.head.str, "name")
