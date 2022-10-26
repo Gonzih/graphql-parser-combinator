@@ -326,3 +326,23 @@ val extendedSchema =
       |    }
       |
     """.stripMargin
+
+class GQLQuerySuite extends munit.FunSuite with GQLQueryParser {
+  test("Parse simple query") {
+    val input =
+      """
+      |{
+      |  hero {
+      |    name
+      |  }
+      |}
+        """.stripMargin
+
+    parse(query, input) match
+      case Success(matched, _) =>
+        assertEquals(matched.head.str, "hero")
+        assertEquals(matched.head.children.head.str, "name")
+      case Failure(msg, _) => fail("FAILURE: " + msg)
+      case Error(msg, _)   => fail("ERROR: " + msg)
+  }
+}

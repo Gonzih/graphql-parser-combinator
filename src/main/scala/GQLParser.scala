@@ -111,7 +111,27 @@ trait GQLSchemaParser extends RegexParsers:
       case _ ~ _ ~ fields ~ _ => SCHEMA_DEF(fields)
     }
 
+  def schema: Parser[List[GQLToken]] =
+    rep(schemadef | enumdef | typedef | iface ) ^^ {
+      _.toList
+    }
+
 end GQLSchemaParser
+
+case class QUERY_ITEM(str: String, args: List[ARG_DEF], children: List[QUERY_ITEM]) extends GQLToken
+
+trait GQLQueryParser extends GQLSchemaParser:
+    def queryitem: Parser[QUERY_ITEM] =
+      identifier ~ opt(argsdef) ~ opt(openbrace ~ rep(queryitem) ~ closebrace) ^^ {
+        case id ~ args ~ Some(_ ~ children ~ _) => QUERY_ITEM(id.str, args.toList.flatten, children)
+        case id ~ args ~ None => QUERY_ITEM(id.str, args.toList.flatten, List())
+      }
+
+    def query: Parser[List[QUERY_ITEM]] =
+      openbrace ~ rep(queryitem) ~ closebrace ^^ {
+        case _ ~ queries ~ _ => queries
+      }
+end GQLQueryParser
 
 // object GQLSchemaParser extends GQLSchemaParser:
 // def run(input: String): ParseResult[GQLToken] =
