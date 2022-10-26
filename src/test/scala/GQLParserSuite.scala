@@ -45,100 +45,107 @@ val starWarsSchema =
       |    }
     """.stripMargin
 
-class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
+trait SuiteHelper extends munit.FunSuite with GQLSchemaParser {
+  def checkResult[A](res: ParseResult[A], f: A => Unit): Unit =
+    res match
+      case Success(matched, _) => f(matched)
+      case Failure(msg, _)     => fail("FAILURE: " + msg)
+      case Error(msg, _)       => fail("ERROR: " + msg)
+}
+
+class GQLParserSuite extends SuiteHelper {
   test("Parse !") {
-    parse(nonnull, "!") match
-      case Success(matched, _) =>
-        assertEquals(matched.str, "!")
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    checkResult(
+      parse(nonnull, "!"),
+      { matched => assertEquals(matched.str, "!") }
+    )
   }
 
   test("Parse type any") {
-    parse(typeany, "Character") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(typeany, "Character"),
+      matched =>
         assertEquals(matched.str, "Character")
         assertEquals(matched.nonull, false)
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
 
-    parse(typeany, "Character!") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(typeany, "Character!"),
+      matched =>
         assertEquals(matched.str, "Character")
         assertEquals(matched.nonull, true)
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse array") {
-    parse(array, "[Character]") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(array, "[Character]"),
+      matched =>
         assertEquals(matched.t.str, "Character")
         assertEquals(matched.t.nonull, false)
         assertEquals(matched.nonull, false)
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
 
-    parse(array, "[Character!]") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(array, "[Character!]"),
+      matched =>
         assertEquals(matched.t.str, "Character")
         assertEquals(matched.t.nonull, true)
         assertEquals(matched.nonull, false)
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
 
-    parse(array, "[Character!]!") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(array, "[Character!]!"),
+      matched =>
         assertEquals(matched.t.str, "Character")
         assertEquals(matched.t.nonull, true)
         assertEquals(matched.nonull, true)
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse simple field definition") {
-    parse(fielddef, "hero: Character") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(fielddef, "hero: Character"),
+      matched =>
         assertEquals(
           matched,
           FIELD_DEF("hero", List(), TYPE("Character", false))
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse simple non null field definition") {
-    parse(fielddef, "hero: Character!") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(fielddef, "hero: Character!"),
+      matched =>
         assertEquals(matched.str, "hero")
         assertEquals(
           matched,
           FIELD_DEF("hero", List(), TYPE("Character", true))
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse simple array field definition") {
-    parse(fielddef, "hero: [Character]!") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(fielddef, "hero: [Character]!"),
+      matched =>
         assertEquals(
           matched,
           FIELD_DEF("hero", List(), ARRAY(TYPE("Character", false), true))
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse simple non null array field definition") {
-    parse(fielddef, "hero: [Character!]!") match
-      case Success(matched, _) =>
+    checkResult(
+      parse(fielddef, "hero: [Character!]!"),
+      matched =>
         assertEquals(
           matched,
           FIELD_DEF("hero", List(), ARRAY(TYPE("Character", true), true))
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse interface definition") {
@@ -151,8 +158,10 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
           |        appearsIn: [Episode]!
           |    }
         """.stripMargin
-    parse(iface, ifaceSchema) match
-      case Success(matched, _) =>
+
+    checkResult(
+      parse(iface, ifaceSchema),
+      matched =>
         assertEquals(matched.str, "Character")
         assertEquals(
           matched.fields,
@@ -167,8 +176,7 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
             FIELD_DEF("appearsIn", List(), ARRAY(TYPE("Episode", false), true))
           )
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse type definition") {
@@ -182,8 +190,10 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
           |        homePlanet: String
           |    }
         """.stripMargin
-    parse(typedef, typedefSchema) match
-      case Success(matched, _) =>
+
+    checkResult(
+      parse(typedef, typedefSchema),
+      matched =>
         assertEquals(matched.str, "Human")
         assertEquals(matched.iface, Some("Character"))
         assertEquals(
@@ -200,8 +210,7 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
             FIELD_DEF("homePlanet", List(), TYPE("String", false))
           )
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse query type definition") {
@@ -215,8 +224,10 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
       |        droids: [Droid]
       |    }
         """.stripMargin
-    parse(typedef, typedefSchema) match
-      case Success(matched, _) =>
+
+    checkResult(
+      parse(typedef, typedefSchema),
+      matched =>
         assertEquals(matched.str, "QueryType")
         assertEquals(matched.iface, None)
         assertEquals(
@@ -241,8 +252,7 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
             FIELD_DEF("droids", List(), ARRAY(TYPE("Droid", false), false))
           )
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse enum definition") {
@@ -254,8 +264,10 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
       |        JEDI
       |    }
         """.stripMargin
-    parse(enumdef, typedefSchema) match
-      case Success(matched, _) =>
+
+    checkResult(
+      parse(enumdef, typedefSchema),
+      matched =>
         assertEquals(matched.str, "Episode")
         assertEquals(
           matched.fields,
@@ -265,8 +277,7 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
             "JEDI"
           )
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 
   test("Parse schema definition") {
@@ -276,16 +287,17 @@ class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
       |        query: QueryType
       |    }
         """.stripMargin
-    parse(schemadef, typedefSchema) match
-      case Success(matched, _) =>
+
+    checkResult(
+      parse(schemadef, typedefSchema),
+      matched =>
         assertEquals(
           matched.fields,
           List(
             FIELD_DEF("query", List(), TYPE("QueryType", false))
           )
         )
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
   }
 }
 
@@ -327,7 +339,7 @@ val extendedSchema =
       |
     """.stripMargin
 
-class GQLQuerySuite extends munit.FunSuite with GQLQueryParser {
+class GQLQuerySuite extends SuiteHelper with GQLQueryParser {
   test("Parse simple query") {
     val input =
       """
@@ -338,11 +350,37 @@ class GQLQuerySuite extends munit.FunSuite with GQLQueryParser {
       |}
         """.stripMargin
 
-    parse(query, input) match
-      case Success(matched, _) =>
+    checkResult(
+      parse(query, input),
+      matched =>
         assertEquals(matched.head.str, "hero")
         assertEquals(matched.head.children.head.str, "name")
-      case Failure(msg, _) => fail("FAILURE: " + msg)
-      case Error(msg, _)   => fail("ERROR: " + msg)
+    )
+  }
+
+  test("Parse simple query with args") {
+    val input =
+      """
+      |{
+      |  human(id: "1000") {
+      |    name
+      |    height
+      |  }
+      |}
+        """.stripMargin
+
+    checkResult(
+      parse(query, input),
+      matched =>
+        assertEquals(matched.head.str, "human")
+        assertEquals(
+          matched.head.args,
+          List(
+            ARG_DEF("id", TYPE("1000", false))
+          )
+        )
+        assertEquals(matched.head.children.head.str, "name")
+        assertEquals(matched.head.children.last.str, "height")
+    )
   }
 }
