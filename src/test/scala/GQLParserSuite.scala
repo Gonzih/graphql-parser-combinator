@@ -358,7 +358,7 @@ class GQLQuerySuite extends SuiteHelper with GQLQueryParser {
     )
   }
 
-  test("Parse simple query with args") {
+  test("Parse simple query with ARGS") {
     val input =
       """
       |{
