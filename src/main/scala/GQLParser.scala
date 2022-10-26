@@ -36,7 +36,7 @@ case class TYPE_DEF(
 case class ENUM_DEF(str: String, fields: List[String]) extends GQLType
 case class SCHEMA_DEF(fields: List[FIELD_DEF]) extends GQLType
 
-trait SimpleParser extends RegexParsers:
+trait GQLSchemaParser extends RegexParsers:
   def identifier: Parser[IDENTIFIER] =
     """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { IDENTIFIER(_) }
   def nonnull: Parser[NON_NULL] =
@@ -82,8 +82,9 @@ trait SimpleParser extends RegexParsers:
     }
 
   def fielddef: Parser[FIELD_DEF] =
-    identifier ~ opt(argsdef) ~ colon ~ array_or_type ^^ { case id ~ args ~ _ ~ t =>
-      FIELD_DEF(id.str, args.toList.flatten, t)
+    identifier ~ opt(argsdef) ~ colon ~ array_or_type ^^ {
+      case id ~ args ~ _ ~ t =>
+        FIELD_DEF(id.str, args.toList.flatten, t)
     }
 
   def iface: Parser[INTERFACE_DEF] =
@@ -110,9 +111,9 @@ trait SimpleParser extends RegexParsers:
       case _ ~ _ ~ fields ~ _ => SCHEMA_DEF(fields)
     }
 
-end SimpleParser
+end GQLSchemaParser
 
-// object SimpleParser extends SimpleParser:
+// object GQLSchemaParser extends GQLSchemaParser:
 // def run(input: String): ParseResult[GQLToken] =
 // parse(freq, input)
-// end SimpleParser
+// end GQLSchemaParser

@@ -45,7 +45,7 @@ val starWarsSchema =
       |    }
     """.stripMargin
 
-class GQLParserSuite extends munit.FunSuite with SimpleParser {
+class GQLParserSuite extends munit.FunSuite with GQLSchemaParser {
   test("Parse !") {
     parse(nonnull, "!") match
       case Success(matched, _) =>
@@ -99,7 +99,10 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
   test("Parse simple field definition") {
     parse(fielddef, "hero: Character") match
       case Success(matched, _) =>
-        assertEquals(matched, FIELD_DEF("hero", List(), TYPE("Character", false)))
+        assertEquals(
+          matched,
+          FIELD_DEF("hero", List(), TYPE("Character", false))
+        )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -108,7 +111,10 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
     parse(fielddef, "hero: Character!") match
       case Success(matched, _) =>
         assertEquals(matched.str, "hero")
-        assertEquals(matched, FIELD_DEF("hero", List(), TYPE("Character", true)))
+        assertEquals(
+          matched,
+          FIELD_DEF("hero", List(), TYPE("Character", true))
+        )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
@@ -153,7 +159,11 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
           List(
             FIELD_DEF("id", List(), TYPE("ID", true)),
             FIELD_DEF("name", List(), TYPE("String", true)),
-            FIELD_DEF("friends", List(), ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF(
+              "friends",
+              List(),
+              ARRAY(TYPE("Character", false), false)
+            ),
             FIELD_DEF("appearsIn", List(), ARRAY(TYPE("Episode", false), true))
           )
         )
@@ -181,9 +191,13 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
           List(
             FIELD_DEF("id", List(), TYPE("ID", true)),
             FIELD_DEF("name", List(), TYPE("String", true)),
-            FIELD_DEF("friends", List(), ARRAY(TYPE("Character", false), false)),
+            FIELD_DEF(
+              "friends",
+              List(),
+              ARRAY(TYPE("Character", false), false)
+            ),
             FIELD_DEF("appearsIn", List(), ARRAY(TYPE("Episode", false), true)),
-            FIELD_DEF("homePlanet", List(), TYPE("String", false)),
+            FIELD_DEF("homePlanet", List(), TYPE("String", false))
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
@@ -208,11 +222,23 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
         assertEquals(
           matched.fields,
           List(
-            FIELD_DEF("hero", List(ARG_DEF("episode", TYPE("Episode", false))), TYPE("Character", false)),
-            FIELD_DEF("human", List(ARG_DEF("id", TYPE("String", false))), TYPE("Human", false)),
-            FIELD_DEF("droid", List(ARG_DEF("id", TYPE("ID", true))), TYPE("Droid", false)),
+            FIELD_DEF(
+              "hero",
+              List(ARG_DEF("episode", TYPE("Episode", false))),
+              TYPE("Character", false)
+            ),
+            FIELD_DEF(
+              "human",
+              List(ARG_DEF("id", TYPE("String", false))),
+              TYPE("Human", false)
+            ),
+            FIELD_DEF(
+              "droid",
+              List(ARG_DEF("id", TYPE("ID", true))),
+              TYPE("Droid", false)
+            ),
             FIELD_DEF("humans", List(), ARRAY(TYPE("Human", false), false)),
-            FIELD_DEF("droids", List(), ARRAY(TYPE("Droid", false), false)),
+            FIELD_DEF("droids", List(), ARRAY(TYPE("Droid", false), false))
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
@@ -255,10 +281,48 @@ class GQLParserSuite extends munit.FunSuite with SimpleParser {
         assertEquals(
           matched.fields,
           List(
-            FIELD_DEF("query", List(), TYPE("QueryType", false)),
+            FIELD_DEF("query", List(), TYPE("QueryType", false))
           )
         )
       case Failure(msg, _) => fail("FAILURE: " + msg)
       case Error(msg, _)   => fail("ERROR: " + msg)
   }
 }
+
+val extendedSchema =
+  """
+      |
+      |    external source LocalPsql {
+      |        kind: PostgreSQL
+      |        host: localhost
+      |        port: 5432
+      |        user: root
+      |        password: root
+      |        database: users
+      |    }
+      |
+      |    external type User {
+      |        source: LocalPsql
+      |        table: users
+      |    }
+      |
+      |    external source CompanyZenDesk {
+      |        kind: ZenDesk
+      |        host: api.zendesk.com
+      |        token: $371OEUAU5Eueae_eu
+      |    }
+      |
+      |    external type Ticket {
+      |        source: CompanyZenDesk
+      |        entity: ticket
+      |    }
+      |
+      |    relation {
+      |        from: User
+      |        to: Ticket
+      |        field: tickets
+      |        kind: one-to-many
+      |        on: User.id == Ticket.author_id
+      |    }
+      |
+    """.stripMargin
